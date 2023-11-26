@@ -36,8 +36,9 @@ async function run() {
     const photoCollection = client.db('photoDB').collection('photo');
     const AddTrainerCollection = client.db('photoDB').collection('addTrainer');
     const trainerCollection = client.db('TrainerDB').collection('trainer');
+    const classSheduleCollection = client.db('ClassDB').collection('classSedule');
 
-    app.get('/trainer:id', async (req, res) => {
+    app.get('/trainer/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) }
       const result = await trainerCollection.findOne(query);
@@ -46,6 +47,10 @@ async function run() {
     })
 
 
+    app.get('/classSedule', async (req, res) => {
+      const result = await classSheduleCollection.find().toArray();
+      res.send(result);
+    })
     app.get('/photo', async (req, res) => {
       const result = await photoCollection.find().toArray();
       res.send(result);
@@ -90,7 +95,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-  res.send('fitness tracker is running')
+  res.send('fitness tracker is running successfully')
 })
 
 app.listen(port, () => {
