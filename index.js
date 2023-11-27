@@ -105,7 +105,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-  res.send('fitness tracker is running successfully')
+  res.send('fitness tracker is running ')
 })
 
 app.listen(port, () => {
