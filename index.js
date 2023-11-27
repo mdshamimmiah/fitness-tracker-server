@@ -34,7 +34,7 @@ async function run() {
     const NewsLetterCollection = client.db('newsDB').collection('news');
     const FitnessCollection = client.db('FitnessDB').collection('team');
     const photoCollection = client.db('photoDB').collection('photo');
-    const AddTrainerCollection = client.db('photoDB').collection('addTrainer');
+    const beTrainerCollection = client.db('photoDB').collection('addTrainer');
     const trainerCollection = client.db('TrainerDB').collection('trainer');
     const classSheduleCollection = client.db('ClassDB').collection('classSedule');
 
@@ -72,10 +72,20 @@ async function run() {
       res.send(result);
 
     })
+
+    app.get('/NewsLetter', async (req, res) => {
+      const result = await NewsLetterCollection.find().toArray();
+      res.send(result);
+    })
+    app.get('/addTrainer', async (req, res) => {
+      const result = await beTrainerCollection.find().toArray();
+      res.send(result);
+    })
+
     app.post('/addTrainer', async (req, res) => {
       const addTrainer = req.body;
       console.log(addTrainer);
-      const result = await AddTrainerCollection.insertOne(addTrainer);
+      const result = await beTrainerCollection.insertOne(addTrainer);
       res.send(result);
 
     })
