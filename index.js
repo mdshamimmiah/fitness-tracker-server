@@ -34,7 +34,7 @@ async function run() {
     const NewsLetterCollection = client.db('newsDB').collection('news');
     const FitnessCollection = client.db('FitnessDB').collection('team');
     const photoCollection = client.db('photoDB').collection('photo');
-    const beTrainerCollection = client.db('photoDB').collection('addTrainer');
+    const beTrainerCollection = client.db('AppliedDB').collection('applied');
     const trainerCollection = client.db('TrainerDB').collection('trainer');
     const classSheduleCollection = client.db('ClassDB').collection('classSedule');
 
@@ -77,18 +77,44 @@ async function run() {
       const result = await NewsLetterCollection.find().toArray();
       res.send(result);
     })
-    app.get('/addTrainer', async (req, res) => {
+    app.get('/applied', async (req, res) => {
       const result = await beTrainerCollection.find().toArray();
       res.send(result);
     })
 
-    app.post('/addTrainer', async (req, res) => {
+    app.post('/applied', async (req, res) => {
       const addTrainer = req.body;
       console.log(addTrainer);
       const result = await beTrainerCollection.insertOne(addTrainer);
       res.send(result);
 
     })
+// applied confirmation work
+
+app.patch('/applied/:Id', async(req, res) =>{
+try {
+  const id = req.params.Id;
+  const filter = { _id: new ObjectId(id) };
+  const updateDoc = {
+    $set: { role: "Accepted" },
+
+  };
+  const trainer = await beTrainerCollection.findOne(filter)
+  trainer.role = "Accepted";
+  delete trainer._id
+  const result = await trainerCollection.insertOne(trainer)
+  const deleted = await beTrainerCollection.deleteOne(filter);
+
+  res.send(result);
+
+} catch (error) {
+  res
+    .status(500)
+    .send({error: true, message: "server side error"});
+}
+
+
+})
 
 
 
