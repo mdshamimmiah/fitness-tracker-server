@@ -35,6 +35,7 @@ async function run() {
 
     const NewsLetterCollection = client.db('newsDB').collection('news');
     const FitnessCollection = client.db('FitnessDB').collection('team');
+    const ArticleCollection = client.db('FitnessDB').collection('article');
     const photoCollection = client.db('photoDB').collection('photo');
     const beTrainerCollection = client.db('AppliedDB').collection('applied');
     const trainerCollection = client.db('TrainerDB').collection('trainer');
@@ -53,6 +54,10 @@ async function run() {
 
     app.get('/classSedule', async (req, res) => {
       const result = await classSheduleCollection.find().toArray();
+      res.send(result);
+    })
+    app.get('/article', async (req, res) => {
+      const result = await ArticleCollection.find().toArray();
       res.send(result);
     })
     app.get('/photo', async (req, res) => {
