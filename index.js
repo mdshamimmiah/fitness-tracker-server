@@ -2,9 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 require('dotenv').config()
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 const port = process.env.PORT || 5000;
 
-
+console.log(process.env.STRIPE_SECRET_KEY);
 
 // middleware
 app.use(cors());
@@ -37,6 +39,8 @@ async function run() {
     const beTrainerCollection = client.db('AppliedDB').collection('applied');
     const trainerCollection = client.db('TrainerDB').collection('trainer');
     const classSheduleCollection = client.db('ClassDB').collection('classSedule');
+
+    const paymentHistory = [];
 
     app.get('/trainer/:id', async (req, res) => {
       const id = req.params.id;
@@ -116,6 +120,55 @@ try {
 
 })
 
+// payment
+
+
+// payment intent
+app.post('/create-payment-intent', async (req, res) => {
+  try {
+      const { price, trainerId } = req.body;
+      const amount = parseInt(price * 100);
+      const userId = trainerId
+      console.log(trainerId); 
+
+      
+      const lastPayment = paymentHistory.find(payment => {
+          return (
+              payment.userId === userId &&
+              new Date(payment.timestamp).getMonth() === new Date().getMonth()
+          );
+      });
+
+      if (lastPayment) {
+          // User has already made a payment in the current month
+          return res.status(400).send({ error: 'User has already made a payment this month' });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: 'usd',
+          payment_method_types: ['card']
+      });
+
+      
+      paymentHistory.push({
+          userId: userId,
+          timestamp: new Date().toISOString(),
+          amount: amount
+      });
+
+      res.send({
+          clientSecret: paymentIntent.client_secret
+      });
+  } catch (error) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).send({ error: 'Error creating payment intent' });
+  }
+});
+
+
+// payment end
+
 
 
     // Send a ping to confirm a successful connection
@@ -131,7 +184,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-  res.send('fitness tracker is running ')
+  res.send('fitness tracker is running s ')
 })
 
 app.listen(port, () => {
