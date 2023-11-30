@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const app = express();
 require('dotenv').config()
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -36,6 +37,7 @@ async function run() {
     const NewsLetterCollection = client.db('newsDB').collection('news');
     const FitnessCollection = client.db('FitnessDB').collection('team');
     const ArticleCollection = client.db('FitnessDB').collection('article');
+    const usersCollection = client.db('FitnessDB').collection('users');
     const photoCollection = client.db('photoDB').collection('photo');
     const beTrainerCollection = client.db('AppliedDB').collection('applied');
     const trainerCollection = client.db('TrainerDB').collection('trainer');
@@ -81,7 +83,83 @@ async function run() {
       res.send(result);
 
     })
+    // jwt
 
+app.post('/jwt', async(req, res)=>{
+  const user = req.body;
+  const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h'});
+  res.send({token});
+})
+
+//  jwt middleware
+const verifyToken = (req, res, next) => {
+  console.log('inside verify token', req.headers.authorization);
+  if(!req.headers.authorization) {
+    return res.status(401).send({ message: 'forbidden access'});
+  }
+  const token = req.headers.authorization.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
+    if(err){
+      return res.status(401).send({message: 'forbidden access'})
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
+
+app.get('/users/admin/:email', verifyToken, async(req, res) =>{
+  const email = req.params.email;
+  if(email !== req.decoded.email){
+    return res.status(403).send({message: 'unauthorized access'})
+  }
+  const query = {email: email};
+  const user = await usersCollection.findOne(query);
+  let admin = false;
+  if(user) {
+    admin = user?.role === 'admin';
+
+  }
+  res.send({admin});
+})
+
+
+    // user related api
+    app.post('/users', async (req, res) => {
+      const users = req.body;
+      console.log(users);
+      const query = { email: users.email }
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: 'user already exit', insertedId: null })
+      }
+      const result = await usersCollection.insertOne(users);
+      res.send(result);
+
+    })
+    app.get('/users', verifyToken, async (req, res) => {
+      console.log(req.headers);
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.delete('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    })
+    app.patch('/users/admin/:id', async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: 'admin'
+        }
+      }
+      const result = await usersCollection.updateOne(filter, updateDoc)
+      res.send(result);
+    })
+    // ...............................
     app.get('/NewsLetter', async (req, res) => {
       const result = await NewsLetterCollection.find().toArray();
       res.send(result);
@@ -98,81 +176,81 @@ async function run() {
       res.send(result);
 
     })
-// applied confirmation work
+    // applied confirmation work
 
-app.patch('/applied/:Id', async(req, res) =>{
-try {
-  const id = req.params.Id;
-  const filter = { _id: new ObjectId(id) };
-  const updateDoc = {
-    $set: { role: "Accepted" },
+    app.patch('/applied/:Id', async (req, res) => {
+      try {
+        const id = req.params.Id;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: { role: "Accepted" },
 
-  };
-  const trainer = await beTrainerCollection.findOne(filter)
-  trainer.role = "Accepted";
-  delete trainer._id
-  const result = await trainerCollection.insertOne(trainer)
-  const deleted = await beTrainerCollection.deleteOne(filter);
+        };
+        const trainer = await beTrainerCollection.findOne(filter)
+        trainer.role = "Accepted";
+        delete trainer._id
+        const result = await trainerCollection.insertOne(trainer)
+        const deleted = await beTrainerCollection.deleteOne(filter);
 
-  res.send(result);
+        res.send(result);
 
-} catch (error) {
-  res
-    .status(500)
-    .send({error: true, message: "server side error"});
-}
-
-
-})
-
-// payment
-
-
-// payment intent
-app.post('/create-payment-intent', async (req, res) => {
-  try {
-      const { price, trainerId } = req.body;
-      const amount = parseInt(price * 100);
-      const userId = trainerId
-      console.log(trainerId); 
-
-      
-      const lastPayment = paymentHistory.find(payment => {
-          return (
-              payment.userId === userId &&
-              new Date(payment.timestamp).getMonth() === new Date().getMonth()
-          );
-      });
-
-      if (lastPayment) {
-          // User has already made a payment in the current month
-          return res.status(400).send({ error: 'User has already made a payment this month' });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: true, message: "server side error" });
       }
 
-      const paymentIntent = await stripe.paymentIntents.create({
+
+    })
+
+    // payment
+
+
+    // payment intent
+    app.post('/create-payment-intent', async (req, res) => {
+      try {
+        const { price, trainerId } = req.body;
+        const amount = parseInt(price * 100);
+        const userId = trainerId
+        console.log(trainerId);
+
+
+        const lastPayment = paymentHistory.find(payment => {
+          return (
+            payment.userId === userId &&
+            new Date(payment.timestamp).getMonth() === new Date().getMonth()
+          );
+        });
+
+        if (lastPayment) {
+          // User has already made a payment in the current month
+          return res.status(400).send({ error: 'User has already made a payment this month' });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.create({
           amount: amount,
           currency: 'usd',
           payment_method_types: ['card']
-      });
+        });
 
-      
-      paymentHistory.push({
+
+        paymentHistory.push({
           userId: userId,
           timestamp: new Date().toISOString(),
           amount: amount
-      });
+        });
 
-      res.send({
+        res.send({
           clientSecret: paymentIntent.client_secret
-      });
-  } catch (error) {
-      console.error('Error creating payment intent:', error);
-      res.status(500).send({ error: 'Error creating payment intent' });
-  }
-});
+        });
+      } catch (error) {
+        console.error('Error creating payment intent:', error);
+        res.status(500).send({ error: 'Error creating payment intent' });
+      }
+    });
 
 
-// payment end
+    // payment end
 
 
 
@@ -189,7 +267,7 @@ run().catch(console.dir);
 
 
 app.get('/', (req, res) => {
-  res.send('fitness tracker is running ')
+  res.send('fitness tracker is running no')
 })
 
 app.listen(port, () => {
