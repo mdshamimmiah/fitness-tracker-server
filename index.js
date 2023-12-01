@@ -38,6 +38,7 @@ async function run() {
     const FitnessCollection = client.db('FitnessDB').collection('team');
     const ArticleCollection = client.db('FitnessDB').collection('article');
     const usersCollection = client.db('FitnessDB').collection('users');
+    const slotCollection = client.db('FitnessDB').collection('slot');
     const photoCollection = client.db('photoDB').collection('photo');
     const beTrainerCollection = client.db('AppliedDB').collection('applied');
     const trainerCollection = client.db('TrainerDB').collection('trainer');
@@ -83,6 +84,19 @@ async function run() {
       res.send(result);
 
     })
+    app.post('/slot', async (req, res) => {
+      const slot = req.body;
+      console.log(slot);
+      const result = await slotCollection.insertOne(slot);
+      res.send(result);
+
+    })
+
+    app.get('/slot', async (req, res) => {
+      const result = await slotCollection.find().toArray();
+      res.send(result);
+    })
+
     // jwt
 
 app.post('/jwt', async(req, res)=>{
@@ -109,11 +123,13 @@ const verifyToken = (req, res, next) => {
 
 app.get('/users/admin/:email', verifyToken, async(req, res) =>{
   const email = req.params.email;
+  console.log(email);
   if(email !== req.decoded.email){
     return res.status(403).send({message: 'unauthorized access'})
   }
   const query = {email: email};
   const user = await usersCollection.findOne(query);
+  console.log(user);
   let admin = false;
   if(user) {
     admin = user?.role === 'admin';
@@ -121,7 +137,24 @@ app.get('/users/admin/:email', verifyToken, async(req, res) =>{
   }
   res.send({admin});
 })
+// trainer
+app.get('/users/trainer/:email', verifyToken, async(req, res) =>{
+  const email = req.params.email;
+  console.log(email);
+  if(email !== req.decoded.email){
+    return res.status(403).send({message: 'unauthorized access'})
+  }
+  const query = {email: email};
+  const user = await trainerCollection.findOne(query);
+  console.log(user);
+  let trainer = false;
+  if(user) {
+    trainer= user?.role === 'Accepted';
 
+  }
+  res.send({trainer});
+})
+// 
 
     // user related api
     app.post('/users', async (req, res) => {
@@ -251,6 +284,44 @@ app.get('/users/admin/:email', verifyToken, async(req, res) =>{
 
 
     // payment end
+
+
+
+    // profile update
+
+    app.get('/profile', async (req, res) => {
+      try {
+        const query = {};
+        if (req.query.email) {
+          query.email = req.query.email;
+        }
+        const result = await usersCollection.findOne(query);
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send("Internal Server Error");
+      }
+    });
+
+
+
+    app.put('/update', async(req, res) => {
+    const query ={};
+    query.email = req.query.email;
+      const options = { upsert: true };
+      const UpdateProfile = req.body;
+      const profile = {
+        $set: {
+          name: UpdateProfile.name,
+            photo: UpdateProfile.photo
+        }
+      }
+      const result = await usersCollection.updateOne(filter, profile, options);
+      res.send(result);
+    })
+    
+
+    // ...................................
 
 
 
