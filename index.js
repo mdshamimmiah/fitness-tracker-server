@@ -38,6 +38,7 @@ async function run() {
     const FitnessCollection = client.db('FitnessDB').collection('team');
     const ArticleCollection = client.db('FitnessDB').collection('article');
     const usersCollection = client.db('FitnessDB').collection('users');
+    const clasCollection = client.db('FitnessDB').collection('clas');
     const slotCollection = client.db('FitnessDB').collection('slot');
     const photoCollection = client.db('photoDB').collection('photo');
     const beTrainerCollection = client.db('AppliedDB').collection('applied');
@@ -201,6 +202,10 @@ async function run() {
       const result = await beTrainerCollection.find().toArray();
       res.send(result);
     })
+    app.get('/clas', async (req, res) => {
+      const result = await clasCollection.find().toArray();
+      res.send(result);
+    })
 
     app.post('/applied', async (req, res) => {
       const addTrainer = req.body;
@@ -322,6 +327,28 @@ async function run() {
 
     // ...................................
 
+    // manage slot dash
+
+
+app.get('/manage', async(req, res) =>{
+ 
+  const email = req.params.email
+const trainerQuery = { email }
+const{ _id: trainer_id} =  await trainerCollection.findOne(trainerQuery);
+
+const slotQuery = { trainer_id }
+const slots = await slotCollection.find(slotQuery).toArray();
+res.send(slots)
+
+})
+
+
+// const email = req.params.email
+// const trainerQuery = { email }
+// const{ _id: trainer_id} =  await trainnerCollection.findOne(trainerQuery);
+
+// const slotQuery = { trainer_id }
+// const slots = await slotCollection.find(slotQuery).toArray();
 
 
     // Send a ping to confirm a successful connection
