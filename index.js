@@ -99,62 +99,62 @@ async function run() {
 
     // jwt
 
-app.post('/jwt', async(req, res)=>{
-  const user = req.body;
-  const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h'});
-  res.send({token});
-})
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+      res.send({ token });
+    })
 
-//  jwt middleware
-const verifyToken = (req, res, next) => {
-  console.log('inside verify token', req.headers.authorization);
-  if(!req.headers.authorization) {
-    return res.status(401).send({ message: 'forbidden access'});
-  }
-  const token = req.headers.authorization.split(' ')[1];
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) =>{
-    if(err){
-      return res.status(401).send({message: 'forbidden access'})
+    //  jwt middleware
+    const verifyToken = (req, res, next) => {
+      console.log('inside verify token', req.headers.authorization);
+      if (!req.headers.authorization) {
+        return res.status(401).send({ message: 'forbidden access' });
+      }
+      const token = req.headers.authorization.split(' ')[1];
+      jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+          return res.status(401).send({ message: 'forbidden access' })
+        }
+        req.decoded = decoded;
+        next();
+      })
     }
-    req.decoded = decoded;
-    next();
-  })
-}
 
-app.get('/users/admin/:email', verifyToken, async(req, res) =>{
-  const email = req.params.email;
-  console.log(email);
-  if(email !== req.decoded.email){
-    return res.status(403).send({message: 'unauthorized access'})
-  }
-  const query = {email: email};
-  const user = await usersCollection.findOne(query);
-  console.log(user);
-  let admin = false;
-  if(user) {
-    admin = user?.role === 'admin';
+    app.get('/users/admin/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: 'unauthorized access' })
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      console.log(user);
+      let admin = false;
+      if (user) {
+        admin = user?.role === 'admin';
 
-  }
-  res.send({admin});
-})
-// trainer
-app.get('/users/trainer/:email', verifyToken, async(req, res) =>{
-  const email = req.params.email;
-  console.log(email);
-  if(email !== req.decoded.email){
-    return res.status(403).send({message: 'unauthorized access'})
-  }
-  const query = {email: email};
-  const user = await trainerCollection.findOne(query);
-  console.log(user);
-  let trainer = false;
-  if(user) {
-    trainer= user?.role === 'Accepted';
+      }
+      res.send({ admin });
+    })
+    // trainer
+    app.get('/users/trainer/:email', verifyToken, async (req, res) => {
+      const email = req.params.email;
+      console.log(email);
+      if (email !== req.decoded.email) {
+        return res.status(403).send({ message: 'unauthorized access' })
+      }
+      const query = { email: email };
+      const user = await trainerCollection.findOne(query);
+      console.log(user);
+      let trainer = false;
+      if (user) {
+        trainer = user?.role === 'Accepted';
 
-  }
-  res.send({trainer});
-})
-// 
+      }
+      res.send({ trainer });
+    })
+    // 
 
     // user related api
     app.post('/users', async (req, res) => {
@@ -305,21 +305,20 @@ app.get('/users/trainer/:email', verifyToken, async(req, res) =>{
 
 
 
-    app.put('/update', async(req, res) => {
-    const query ={};
-    query.email = req.query.email;
+    app.put('/update/:email', async (req, res) => {
+      const filter = {email:req.params.email}
       const options = { upsert: true };
       const UpdateProfile = req.body;
       const profile = {
         $set: {
-          name: UpdateProfile.name,
-            photo: UpdateProfile.photo
+          userName: UpdateProfile.name,
+          image: UpdateProfile.photo
         }
       }
       const result = await usersCollection.updateOne(filter, profile, options);
       res.send(result);
     })
-    
+
 
     // ...................................
 
