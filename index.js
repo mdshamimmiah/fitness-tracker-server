@@ -38,6 +38,7 @@ async function run() {
     const FitnessCollection = client.db('FitnessDB').collection('team');
     const ArticleCollection = client.db('FitnessDB').collection('article');
     const usersCollection = client.db('FitnessDB').collection('users');
+    const postsCollection = client.db('FitnessDB').collection('posts');
     const clasCollection = client.db('FitnessDB').collection('clas');
     const slotCollection = client.db('FitnessDB').collection('slot');
     const photoCollection = client.db('photoDB').collection('photo');
@@ -60,6 +61,46 @@ async function run() {
       const result = await classSheduleCollection.find().toArray();
       res.send(result);
     })
+    app.post('/classSedule', async (req, res) => {
+      const slot = req.body;
+      console.log(slot);
+      const result = await classSheduleCollection.insertOne(slot);
+      res.send(result);
+
+    })
+    app.post('/posts', async (req, res) => {
+      const slot = req.body;
+      console.log(slot);
+      const result = await postsCollection.insertOne(slot);
+      res.send(result);
+
+    })
+   
+    
+
+    // POSTS
+    app.get('/posts', async (req, res) => {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 6;
+      const startIndex = (page - 1) * limit;
+      const endIndex = page * limit;
+    
+      try {
+        const allPosts = await postsCollection.find({}).toArray();
+        const paginatedPosts = allPosts.slice(startIndex, endIndex);
+    
+        res.json({
+          posts: paginatedPosts,
+          currentPage: page,
+          totalPages: Math.ceil(allPosts.length / limit),
+        });
+      } catch (error) {
+        console.error('Error fetching posts from MongoDB:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
+
+
     app.get('/article', async (req, res) => {
       const result = await ArticleCollection.find().toArray();
       res.send(result);
@@ -330,11 +371,13 @@ async function run() {
     // manage slot dash
 
 
-app.get('/manage', async(req, res) =>{
+app.get('/manage/:email', async(req, res) =>{
  
   const email = req.params.email
 const trainerQuery = { email }
-const{ _id: trainer_id} =  await trainerCollection.findOne(trainerQuery);
+console.log(trainerQuery);
+const { _id: trainer_id} =  await trainerCollection.findOne(trainerQuery);
+console.log(trainer_id);
 
 const slotQuery = { trainer_id }
 const slots = await slotCollection.find(slotQuery).toArray();
@@ -353,7 +396,7 @@ res.send(slots)
 
     // Send a ping to confirm a successful connection
 
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
 
